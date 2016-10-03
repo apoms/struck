@@ -31,236 +31,209 @@
 #include <iostream>
 #include <fstream>
 
-#include <opencv/cv.h>
-#include <opencv/highgui.h>
+#include <opencv2/core/core.hpp>
+#include <opencv2/imgproc/imgproc.hpp>
+#include <opencv2/highgui/highgui.hpp>
 
 using namespace std;
-using namespace cv;
 
 static const int kLiveBoxWidth = 80;
 static const int kLiveBoxHeight = 80;
 
-void rectangle(Mat& rMat, const FloatRect& rRect, const Scalar& rColour)
-{
-	IntRect r(rRect);
-	rectangle(rMat, Point(r.XMin(), r.YMin()), Point(r.XMax(), r.YMax()), rColour);
+void rectangle(cv::Mat &rMat, const FloatRect &rRect,
+               const cv::Scalar &rColour) {
+  IntRect r(rRect);
+  rectangle(rMat, cv::Point(r.XMin(), r.YMin()), cv::Point(r.XMax(), r.YMax()),
+            rColour);
 }
 
-int main(int argc, char* argv[])
-{
-	// read config file
-	string configPath = "config.txt";
-	if (argc > 1)
-	{
-		configPath = argv[1];
-	}
-	Config conf(configPath);
-	cout << conf << endl;
-	
-	if (conf.features.size() == 0)
-	{
-		cout << "error: no features specified in config" << endl;
-		return EXIT_FAILURE;
-	}
-	
-	ofstream outFile;
-	if (conf.resultsPath != "")
-	{
-		outFile.open(conf.resultsPath.c_str(), ios::out);
-		if (!outFile)
-		{
-			cout << "error: could not open results file: " << conf.resultsPath << endl;
-			return EXIT_FAILURE;
-		}
-	}
-	
-	// if no sequence specified then use the camera
-	bool useCamera = (conf.sequenceName == "");
-	
-	VideoCapture cap;
-	
-	int startFrame = -1;
-	int endFrame = -1;
-	FloatRect initBB;
-	string imgFormat;
-	float scaleW = 1.f;
-	float scaleH = 1.f;
-	
-	if (useCamera)
-	{
-		if (!cap.open(0))
-		{
-			cout << "error: could not start camera capture" << endl;
-			return EXIT_FAILURE;
-		}
-		startFrame = 0;
-		endFrame = INT_MAX;
-		Mat tmp;
-		cap >> tmp;
-		scaleW = (float)conf.frameWidth/tmp.cols;
-		scaleH = (float)conf.frameHeight/tmp.rows;
+int main(int argc, char *argv[]) {
+  // read config file
+  string configPath = "config.txt";
+  if (argc > 1) {
+    configPath = argv[1];
+  }
+  Config conf(configPath);
+  cout << conf << endl;
 
-		initBB = IntRect(conf.frameWidth/2-kLiveBoxWidth/2, conf.frameHeight/2-kLiveBoxHeight/2, kLiveBoxWidth, kLiveBoxHeight);
-		cout << "press 'i' to initialise tracker" << endl;
-	}
-	else
-	{
-		// parse frames file
-		string framesFilePath = conf.sequenceBasePath+"/"+conf.sequenceName+"/"+conf.sequenceName+"_frames.txt";
-		ifstream framesFile(framesFilePath.c_str(), ios::in);
-		if (!framesFile)
-		{
-			cout << "error: could not open sequence frames file: " << framesFilePath << endl;
-			return EXIT_FAILURE;
-		}
-		string framesLine;
-		getline(framesFile, framesLine);
-		sscanf(framesLine.c_str(), "%d,%d", &startFrame, &endFrame);
-		if (framesFile.fail() || startFrame == -1 || endFrame == -1)
-		{
-			cout << "error: could not parse sequence frames file" << endl;
-			return EXIT_FAILURE;
-		}
-		
-		imgFormat = conf.sequenceBasePath+"/"+conf.sequenceName+"/imgs/img%05d.png";
-		
-		// read first frame to get size
-		char imgPath[256];
-		sprintf(imgPath, imgFormat.c_str(), startFrame);
-		Mat tmp = cv::imread(imgPath, 0);
-		scaleW = (float)conf.frameWidth/tmp.cols;
-		scaleH = (float)conf.frameHeight/tmp.rows;
-		
-		// read init box from ground truth file
-		string gtFilePath = conf.sequenceBasePath+"/"+conf.sequenceName+"/"+conf.sequenceName+"_gt.txt";
-		ifstream gtFile(gtFilePath.c_str(), ios::in);
-		if (!gtFile)
-		{
-			cout << "error: could not open sequence gt file: " << gtFilePath << endl;
-			return EXIT_FAILURE;
-		}
-		string gtLine;
-		getline(gtFile, gtLine);
-		float xmin = -1.f;
-		float ymin = -1.f;
-		float width = -1.f;
-		float height = -1.f;
-		sscanf(gtLine.c_str(), "%f,%f,%f,%f", &xmin, &ymin, &width, &height);
-		if (gtFile.fail() || xmin < 0.f || ymin < 0.f || width < 0.f || height < 0.f)
-		{
-			cout << "error: could not parse sequence gt file" << endl;
-			return EXIT_FAILURE;
-		}
-		initBB = FloatRect(xmin*scaleW, ymin*scaleH, width*scaleW, height*scaleH);
-	}
-	
-	
-	
-	Tracker tracker(conf);
-	if (!conf.quietMode)
-	{
-		namedWindow("result");
-	}
-	
-	Mat result(conf.frameHeight, conf.frameWidth, CV_8UC3);
-	bool paused = false;
-	bool doInitialise = false;
-	srand(conf.seed);
-	for (int frameInd = startFrame; frameInd <= endFrame; ++frameInd)
-	{
-		Mat frame;
-		if (useCamera)
-		{
-			Mat frameOrig;
-			cap >> frameOrig;
-			resize(frameOrig, frame, Size(conf.frameWidth, conf.frameHeight));
-			flip(frame, frame, 1);
-			frame.copyTo(result);
-			if (doInitialise)
-			{
-				if (tracker.IsInitialised())
-				{
-					tracker.Reset();
-				}
-				else
-				{
-					tracker.Initialise(frame, initBB);
-				}
-				doInitialise = false;
-			}
-			else if (!tracker.IsInitialised())
-			{
-				rectangle(result, initBB, CV_RGB(255, 255, 255));
-			}
-		}
-		else
-		{			
-			char imgPath[256];
-			sprintf(imgPath, imgFormat.c_str(), frameInd);
-			Mat frameOrig = cv::imread(imgPath, 0);
-			if (frameOrig.empty())
-			{
-				cout << "error: could not read frame: " << imgPath << endl;
-				return EXIT_FAILURE;
-			}
-			resize(frameOrig, frame, Size(conf.frameWidth, conf.frameHeight));
-			cvtColor(frame, result, CV_GRAY2RGB);
-		
-			if (frameInd == startFrame)
-			{
-				tracker.Initialise(frame, initBB);
-			}
-		}
-		
-		if (tracker.IsInitialised())
-		{
-			tracker.Track(frame);
-			
-			if (!conf.quietMode && conf.debugMode)
-			{
-				tracker.Debug();
-			}
-			
-			rectangle(result, tracker.GetBB(), CV_RGB(0, 255, 0));
-			
-			if (outFile)
-			{
-				const FloatRect& bb = tracker.GetBB();
-				outFile << bb.XMin()/scaleW << "," << bb.YMin()/scaleH << "," << bb.Width()/scaleW << "," << bb.Height()/scaleH << endl;
-			}
-		}
-		
-		if (!conf.quietMode)
-		{
-			imshow("result", result);
-			int key = waitKey(paused ? 0 : 1);
-			if (key != -1)
-			{
-				if (key == 27 || key == 113) // esc q
-				{
-					break;
-				}
-				else if (key == 112) // p
-				{
-					paused = !paused;
-				}
-				else if (key == 105 && useCamera)
-				{
-					doInitialise = true;
-				}
-			}
-			if (conf.debugMode && frameInd == endFrame)
-			{
-				cout << "\n\nend of sequence, press any key to exit" << endl;
-				waitKey();
-			}
-		}
-	}
-	
-	if (outFile.is_open())
-	{
-		outFile.close();
-	}
-	
-	return EXIT_SUCCESS;
+  if (conf.features.size() == 0) {
+    cout << "error: no features specified in config" << endl;
+    return EXIT_FAILURE;
+  }
+
+  ofstream outFile;
+  if (conf.resultsPath != "") {
+    outFile.open(conf.resultsPath.c_str(), ios::out);
+    if (!outFile) {
+      cout << "error: could not open results file: " << conf.resultsPath
+           << endl;
+      return EXIT_FAILURE;
+    }
+  }
+
+  // if no sequence specified then use the camera
+  bool useCamera = (conf.sequenceName == "");
+
+  cv::VideoCapture cap;
+
+  int startFrame = -1;
+  int endFrame = -1;
+  FloatRect initBB;
+  string imgFormat;
+  float scaleW = 1.f;
+  float scaleH = 1.f;
+
+  if (useCamera) {
+    if (!cap.open(0)) {
+      cout << "error: could not start camera capture" << endl;
+      return EXIT_FAILURE;
+    }
+    startFrame = 0;
+    endFrame = INT_MAX;
+    cv::Mat tmp;
+    cap >> tmp;
+    scaleW = (float)conf.frameWidth / tmp.cols;
+    scaleH = (float)conf.frameHeight / tmp.rows;
+
+    initBB = IntRect(conf.frameWidth / 2 - kLiveBoxWidth / 2,
+                     conf.frameHeight / 2 - kLiveBoxHeight / 2, kLiveBoxWidth,
+                     kLiveBoxHeight);
+    cout << "press 'i' to initialise tracker" << endl;
+  } else {
+    // parse frames file
+    string framesFilePath = conf.sequenceBasePath + "/" + conf.sequenceName +
+                            "/" + conf.sequenceName + "_frames.txt";
+    ifstream framesFile(framesFilePath.c_str(), ios::in);
+    if (!framesFile) {
+      cout << "error: could not open sequence frames file: " << framesFilePath
+           << endl;
+      return EXIT_FAILURE;
+    }
+    string framesLine;
+    getline(framesFile, framesLine);
+    sscanf(framesLine.c_str(), "%d,%d", &startFrame, &endFrame);
+    if (framesFile.fail() || startFrame == -1 || endFrame == -1) {
+      cout << "error: could not parse sequence frames file" << endl;
+      return EXIT_FAILURE;
+    }
+
+    imgFormat =
+        conf.sequenceBasePath + "/" + conf.sequenceName + "/imgs/img%05d.png";
+
+    // read first frame to get size
+    char imgPath[256];
+    sprintf(imgPath, imgFormat.c_str(), startFrame);
+    cv::Mat tmp = cv::imread(imgPath, 0);
+    scaleW = (float)conf.frameWidth / tmp.cols;
+    scaleH = (float)conf.frameHeight / tmp.rows;
+
+    // read init box from ground truth file
+    string gtFilePath = conf.sequenceBasePath + "/" + conf.sequenceName + "/" +
+                        conf.sequenceName + "_gt.txt";
+    ifstream gtFile(gtFilePath.c_str(), ios::in);
+    if (!gtFile) {
+      cout << "error: could not open sequence gt file: " << gtFilePath << endl;
+      return EXIT_FAILURE;
+    }
+    string gtLine;
+    getline(gtFile, gtLine);
+    float xmin = -1.f;
+    float ymin = -1.f;
+    float width = -1.f;
+    float height = -1.f;
+    sscanf(gtLine.c_str(), "%f,%f,%f,%f", &xmin, &ymin, &width, &height);
+    if (gtFile.fail() || xmin < 0.f || ymin < 0.f || width < 0.f ||
+        height < 0.f) {
+      cout << "error: could not parse sequence gt file" << endl;
+      return EXIT_FAILURE;
+    }
+    initBB = FloatRect(xmin * scaleW, ymin * scaleH, width * scaleW,
+                       height * scaleH);
+  }
+
+  Tracker tracker(conf);
+  if (!conf.quietMode) {
+    cv::namedWindow("result");
+  }
+
+  cv::Mat result(conf.frameHeight, conf.frameWidth, CV_8UC3);
+  bool paused = false;
+  bool doInitialise = false;
+  srand(conf.seed);
+  for (int frameInd = startFrame; frameInd <= endFrame; ++frameInd) {
+    cv::Mat frame;
+    if (useCamera) {
+      cv::Mat frameOrig;
+      cap >> frameOrig;
+      cv::resize(frameOrig, frame, cv::Size(conf.frameWidth, conf.frameHeight));
+      flip(frame, frame, 1);
+      frame.copyTo(result);
+      if (doInitialise) {
+        if (tracker.IsInitialised()) {
+          tracker.Reset();
+        } else {
+          tracker.Initialise(frame, initBB);
+        }
+        doInitialise = false;
+      } else if (!tracker.IsInitialised()) {
+        rectangle(result, initBB, CV_RGB(255, 255, 255));
+      }
+    } else {
+      char imgPath[256];
+      sprintf(imgPath, imgFormat.c_str(), frameInd);
+      cv::Mat frameOrig = cv::imread(imgPath, 0);
+      if (frameOrig.empty()) {
+        cout << "error: could not read frame: " << imgPath << endl;
+        return EXIT_FAILURE;
+      }
+      cv::resize(frameOrig, frame, cv::Size(conf.frameWidth, conf.frameHeight));
+      cvtColor(frame, result, CV_GRAY2RGB);
+
+      if (frameInd == startFrame) {
+        tracker.Initialise(frame, initBB);
+      }
+    }
+
+    if (tracker.IsInitialised()) {
+      tracker.Track(frame);
+
+      if (!conf.quietMode && conf.debugMode) {
+        tracker.Debug();
+      }
+
+      rectangle(result, tracker.GetBB(), CV_RGB(0, 255, 0));
+
+      if (outFile) {
+        const FloatRect &bb = tracker.GetBB();
+        outFile << bb.XMin() / scaleW << "," << bb.YMin() / scaleH << ","
+                << bb.Width() / scaleW << "," << bb.Height() / scaleH << endl;
+      }
+    }
+
+    if (!conf.quietMode) {
+      imshow("result", result);
+      int key = cv::waitKey(paused ? 0 : 1);
+      if (key != -1) {
+        if (key == 27 || key == 113) // esc q
+        {
+          break;
+        } else if (key == 112) // p
+        {
+          paused = !paused;
+        } else if (key == 105 && useCamera) {
+          doInitialise = true;
+        }
+      }
+      if (conf.debugMode && frameInd == endFrame) {
+        cout << "\n\nend of sequence, press any key to exit" << endl;
+        cv::waitKey();
+      }
+    }
+  }
+
+  if (outFile.is_open()) {
+    outFile.close();
+  }
+
+  return EXIT_SUCCESS;
 }

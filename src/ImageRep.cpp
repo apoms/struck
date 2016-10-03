@@ -29,6 +29,7 @@
 
 #include <cassert>
 
+#include <opencv2/imgproc/imgproc.hpp>
 #include <opencv/highgui.h>
 
 using namespace std;

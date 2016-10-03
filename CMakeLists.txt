@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 2.6)
+cmake_minimum_required(VERSION 3.2)
 project(struck)
 
 if (NOT CMAKE_BUILD_TYPE)
@@ -22,9 +22,20 @@ include_directories(
 # add all .cpp and .h files in src
 file(GLOB_RECURSE SRC RELATIVE ${PROJECT_SOURCE_DIR} src/*.cpp)
 file(GLOB_RECURSE HEADERS RELATIVE ${PROJECT_SOURCE_DIR} src/*.h)
+foreach(item ${SRC})
+  if(${item} MATCHES "src/main.cpp")
+    LIST(REMOVE_ITEM SRC ${item})
+  endif()
+endforeach()
 
-add_executable(struck ${HEADERS} ${SRC})
+add_library(struck ${HEADERS} ${SRC})
+
+add_executable(struck_example
+  src/main.cpp)
 
 target_link_libraries(struck
-    ${OpenCV_LIBS}
-)
+  ${OpenCV_LIBS})
+
+target_link_libraries(struck_example
+  struck
+  ${OpenCV_LIBS})
