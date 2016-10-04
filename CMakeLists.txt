@@ -1,5 +1,6 @@
 cmake_minimum_required(VERSION 3.2)
-project(struck)
+
+project(Struck)
 
 if (NOT CMAKE_BUILD_TYPE)
     message(STATUS "No build type selected, defaulting to Release")
@@ -39,3 +40,22 @@ target_link_libraries(struck
 target_link_libraries(struck_example
   struck
   ${OpenCV_LIBS})
+
+install(TARGETS struck
+  EXPORT StruckTarget
+  ARCHIVE DESTINATION lib)
+
+set(STRUCK_LIBRARY "${CMAKE_INSTALL_PREFIX}/lib/libstruck.a")
+set(STRUCK_LIBRARIES ${CUSTOM_LIBRARIES})
+
+configure_file(cmake/StruckConfig.cmake.in
+  "${PROJECT_BINARY_DIR}/cmake/StruckConfig.cmake" @ONLY)
+
+install(FILES "${PROJECT_BINARY_DIR}/cmake/StruckConfig.cmake"
+  DESTINATION cmake)
+
+install(EXPORT StruckTarget
+  DESTINATION cmake)
+
+install(DIRECTORY src/ DESTINATION include/struck
+        FILES_MATCHING PATTERN "*.h")

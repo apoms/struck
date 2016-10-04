@@ -35,6 +35,8 @@
 
 #include <Eigen/Core>
 
+namespace struck {
+
 class ImageRep
 {
 public:
@@ -53,5 +55,6 @@ private:
 	int m_channels;
 	IntRect m_rect;
 };
+}
 
 #endif

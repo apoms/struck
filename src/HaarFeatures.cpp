@@ -30,6 +30,8 @@
 
 static const int kSystematicFeatureCount = 192;
 
+namespace struck {
+
 HaarFeatures::HaarFeatures(const Config& conf)
 {
 	SetCount(kSystematicFeatureCount);
@@ -63,4 +65,5 @@ void HaarFeatures::UpdateFeatureVector(const Sample& s)
 	{
 		m_featVec[i] = m_features[i].Eval(s);
 	}
+}
 }

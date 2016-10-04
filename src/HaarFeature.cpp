@@ -33,6 +33,8 @@
 
 using namespace std;
 
+namespace struck {
+
 HaarFeature::HaarFeature(const FloatRect& bb, int type) :
 	m_bb(bb)
 {
@@ -122,4 +124,6 @@ float HaarFeature::Eval(const Sample& s) const
 		value += m_weights[i]*image.Sum(sampleRect);
 	}
 	return value / (m_factor*roi.Area()*m_bb.Area());
+}
+
 }

@@ -33,6 +33,8 @@
 
 using namespace std;
 
+namespace struck {
+
 vector<FloatRect> Sampler::RadialSamples(FloatRect centre, int radius, int nr, int nt)
 {
 	vector<FloatRect> samples;
@@ -84,4 +86,5 @@ vector<FloatRect> Sampler::PixelSamples(FloatRect centre, int radius, bool halfS
 	}
 	
 	return samples;
+}
 }

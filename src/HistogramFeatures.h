@@ -30,6 +30,8 @@
 
 #include "Features.h"
 
+namespace struck {
+
 class Config;
 
 class HistogramFeatures : public Features
@@ -41,5 +43,6 @@ private:
 	
 	virtual void UpdateFeatureVector(const Sample& s);
 };
+}
 
 #endif

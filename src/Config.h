@@ -34,6 +34,8 @@
 
 #define VERBOSE (0)
 
+namespace struck {
+
 class Config
 {
 public:
@@ -85,5 +87,7 @@ private:
 	static std::string FeatureName(FeatureType f);
 	static std::string KernelName(KernelType k);
 };
+
+}
 
 #endif

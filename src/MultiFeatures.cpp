@@ -30,6 +30,8 @@
 using namespace Eigen;
 using namespace std;
 
+namespace struck {
+
 MultiFeatures::MultiFeatures(const vector<Features*>& features) :
 	m_features(features)
 {
@@ -50,4 +52,5 @@ void MultiFeatures::UpdateFeatureVector(const Sample& s)
 		m_featVec.segment(start, n) = m_features[i]->Eval(s);
 		start += n;
 	}
+}
 }

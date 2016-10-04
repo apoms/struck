@@ -45,6 +45,7 @@ using namespace Eigen;
 
 static const int kMaxSVs = 2000; // TODO (only used when no budget)
 
+namespace struck {
 
 LaRank::LaRank(const Config& conf, const Features& features, const Kernel& kernel) :
 	m_config(conf),
@@ -546,4 +547,5 @@ void LaRank::UpdateDebugImage()
 	IplImage II = I;
 	setGraphColor(0);
 	drawFloatGraph(vals, n, &II, 0.f, 0.f, I.cols, I.rows);
+}
 }

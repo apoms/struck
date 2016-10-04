@@ -33,6 +33,8 @@
 
 #include <vector>
 
+namespace struck {
+
 class Sample;
 
 class HaarFeature
@@ -49,5 +51,6 @@ private:
 	std::vector<float> m_weights;
 	float m_factor;
 };
+}
 
 #endif

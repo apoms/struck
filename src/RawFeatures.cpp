@@ -39,6 +39,8 @@ using namespace cv;
 
 static const int kPatchSize = 16;
 
+namespace struck {
+
 RawFeatures::RawFeatures(const Config& conf) :
 	m_patchImage(kPatchSize, kPatchSize, CV_8UC1)
 {
@@ -61,4 +63,5 @@ void RawFeatures::UpdateFeatureVector(const Sample& s)
 			m_featVec[ind] = ((double)*pixel)/255;
 		}
 	}
+}
 }

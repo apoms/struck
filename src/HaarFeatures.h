@@ -33,6 +33,8 @@
 
 #include <vector>
 
+namespace struck {
+
 class Config;
 
 class HaarFeatures : public Features
@@ -47,5 +49,6 @@ private:
 	
 	void GenerateSystematic();
 };
+}
 
 #endif

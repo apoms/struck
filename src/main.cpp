@@ -36,6 +36,7 @@
 #include <opencv2/highgui/highgui.hpp>
 
 using namespace std;
+using namespace struck;
 
 static const int kLiveBoxWidth = 80;
 static const int kLiveBoxHeight = 80;

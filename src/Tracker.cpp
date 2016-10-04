@@ -53,6 +53,8 @@ using namespace cv;
 using namespace std;
 using namespace Eigen;
 
+namespace struck {
+
 Tracker::Tracker(const Config& conf) :
 	m_config(conf),
 	m_initialised(false),
@@ -233,4 +235,6 @@ void Tracker::UpdateLearner(const ImageRep& image)
 		
 	MultiSample sample(image, keptRects);
 	m_pLearner->Update(sample, 0);
+}
+
 }

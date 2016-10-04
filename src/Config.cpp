@@ -33,6 +33,8 @@
 
 using namespace std;
 
+namespace struck {
+
 Config::Config(const std::string& path)
 {
 	SetDefaults();
@@ -191,4 +193,5 @@ ostream& operator<< (ostream& out, const Config& conf)
 	}
 	
 	return out;
+}
 }

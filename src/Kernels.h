@@ -31,6 +31,8 @@
 #include <Eigen/Core>
 #include <cmath>
 
+namespace struck {
+
 class Kernel
 {
 public:
@@ -150,5 +152,6 @@ private:
 	std::vector<int> m_counts;	
 	
 };
+}
 
 #endif

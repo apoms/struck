@@ -33,6 +33,8 @@
 #include <Eigen/Core>
 #include <vector>
 
+namespace struck {
+
 class Features
 {
 public:
@@ -66,5 +68,6 @@ protected:
 	virtual void UpdateFeatureVector(const Sample& s) = 0;
 	
 };
+}
 
 #endif

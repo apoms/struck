@@ -41,6 +41,8 @@ static const int kNumLevels = 4;
 static const int kNumCellsX = 3;
 static const int kNumCellsY = 3;
 
+namespace struck {
+
 HistogramFeatures::HistogramFeatures(const Config& conf)
 {
 	int nc = 0;
@@ -82,4 +84,5 @@ void HistogramFeatures::UpdateFeatureVector(const Sample& s)
 		}
 	}
 	m_featVec /= histind;
+}
 }

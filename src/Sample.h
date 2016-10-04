@@ -33,6 +33,8 @@
 
 #include <vector>
 
+namespace struck {
+
 class Sample
 {
 public:
@@ -67,5 +69,6 @@ private:
 	const ImageRep& m_image;
 	std::vector<FloatRect> m_rects;
 };
+}
 
 #endif
