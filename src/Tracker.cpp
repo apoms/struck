@@ -1,28 +1,28 @@
-/* 
+/*
  * Struck: Structured Output Tracking with Kernels
- * 
+ *
  * Code to accompany the paper:
  *   Struck: Structured Output Tracking with Kernels
  *   Sam Hare, Amir Saffari, Philip H. S. Torr
  *   International Conference on Computer Vision (ICCV), 2011
- * 
+ *
  * Copyright (C) 2011 Sam Hare, Oxford Brookes University, Oxford, UK
- * 
+ *
  * This file is part of Struck.
- * 
+ *
  * Struck is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
- * 
+ *
  * Struck is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU General Public License
  * along with Struck.  If not, see <http://www.gnu.org/licenses/>.
- * 
+ *
  */
 
 #include "Tracker.h"
@@ -87,10 +87,10 @@ void Tracker::Reset()
 	}
 	m_features.clear();
 	m_kernels.clear();
-	
+
 	m_needsIntegralImage = false;
 	m_needsIntegralHist = false;
-	
+
 	int numFeatures = m_config.features.size();
 	vector<int> featureCounts;
 	for (int i = 0; i < numFeatures; ++i)
@@ -100,7 +100,7 @@ void Tracker::Reset()
 		case Config::kFeatureTypeHaar:
 			m_features.push_back(new HaarFeatures(m_config));
 			m_needsIntegralImage = true;
-			break;			
+			break;
 		case Config::kFeatureTypeRaw:
 			m_features.push_back(new RawFeatures(m_config));
 			break;
@@ -110,7 +110,7 @@ void Tracker::Reset()
 			break;
 		}
 		featureCounts.push_back(m_features.back()->GetCount());
-		
+
 		switch (m_config.features[i].kernel)
 		{
 		case Config::kKernelTypeLinear:
@@ -127,19 +127,19 @@ void Tracker::Reset()
 			break;
 		}
 	}
-	
+
 	if (numFeatures > 1)
 	{
 		MultiFeatures* f = new MultiFeatures(m_features);
 		m_features.push_back(f);
-		
+
 		MultiKernel* k = new MultiKernel(m_kernels, featureCounts);
-		m_kernels.push_back(k);		
+		m_kernels.push_back(k);
 	}
-	
+
 	m_pLearner = new LaRank(m_config, *m_features.back(), *m_kernels.back());
 }
-	
+
 
 void Tracker::Initialise(const cv::Mat& frame, FloatRect bb)
 {
@@ -155,11 +155,11 @@ void Tracker::Initialise(const cv::Mat& frame, FloatRect bb)
 void Tracker::Track(const cv::Mat& frame)
 {
 	assert(m_initialised);
-	
+
 	ImageRep image(frame, m_needsIntegralImage, m_needsIntegralHist);
-	
+
 	vector<FloatRect> rects = Sampler::PixelSamples(m_bb, m_config.searchRadius);
-	
+
 	vector<FloatRect> keptRects;
 	keptRects.reserve(rects.size());
 	for (int i = 0; i < (int)rects.size(); ++i)
@@ -167,33 +167,36 @@ void Tracker::Track(const cv::Mat& frame)
 		if (!rects[i].IsInside(image.GetRect())) continue;
 		keptRects.push_back(rects[i]);
 	}
-	
+
 	MultiSample sample(image, keptRects);
-	
+
 	vector<double> scores;
 	m_pLearner->Eval(sample, scores);
-	
+
 	double bestScore = -DBL_MAX;
 	int bestInd = -1;
 	for (int i = 0; i < (int)keptRects.size(); ++i)
-	{		
+	{
 		if (scores[i] > bestScore)
 		{
 			bestScore = scores[i];
 			bestInd = i;
 		}
 	}
-	
+
 	UpdateDebugImage(keptRects, m_bb, scores);
-	
+
 	if (bestInd != -1)
 	{
 		m_bb = keptRects[bestInd];
+    m_score = bestScore;
 		UpdateLearner(image);
-#if VERBOSE		
+#if VERBOSE
 		cout << "track score: " << bestScore << endl;
 #endif
-	}
+	} else {
+    m_score = -DBL_MAX;
+  }
 }
 
 void Tracker::UpdateDebugImage(const vector<FloatRect>& samples, const FloatRect& centre, const vector<double>& scores)
@@ -220,7 +223,7 @@ void Tracker::UpdateLearner(const ImageRep& image)
 	// note these return the centre sample at index 0
 	vector<FloatRect> rects = Sampler::RadialSamples(m_bb, 2*m_config.searchRadius, 5, 16);
 	//vector<FloatRect> rects = Sampler::PixelSamples(m_bb, 2*m_config.searchRadius, true);
-	
+
 	vector<FloatRect> keptRects;
 	keptRects.push_back(rects[0]); // the true sample
 	for (int i = 1; i < (int)rects.size(); ++i)
@@ -228,11 +231,11 @@ void Tracker::UpdateLearner(const ImageRep& image)
 		if (!rects[i].IsInside(image.GetRect())) continue;
 		keptRects.push_back(rects[i]);
 	}
-		
-#if VERBOSE		
+
+#if VERBOSE
 	cout << keptRects.size() << " samples" << endl;
 #endif
-		
+
 	MultiSample sample(image, keptRects);
 	m_pLearner->Update(sample, 0);
 }
