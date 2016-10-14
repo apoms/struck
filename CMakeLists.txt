@@ -31,15 +31,15 @@ endforeach()
 
 add_library(struck ${HEADERS} ${SRC})
 
-add_executable(struck_example
-  src/main.cpp)
+# add_executable(struck_example
+#   src/main.cpp)
 
 target_link_libraries(struck
   ${OpenCV_LIBS})
 
-target_link_libraries(struck_example
-  struck
-  ${OpenCV_LIBS})
+# target_link_libraries(struck_example
+#   struck
+#   ${OpenCV_LIBS})
 
 install(TARGETS struck
   EXPORT StruckTarget
